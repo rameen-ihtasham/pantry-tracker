@@ -1,6 +1,6 @@
 'use client'
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { firestore } from "@/firebase";
 import { Box, Typography, DataGrid, TextField, Button, styled, Stack, Item, ButtonGroup, Alert, AlertTitle } from "@mui/material";
 import { collection, deleteDoc, doc, getDocs, query, setDoc, getDoc } from "firebase/firestore";
@@ -59,24 +59,36 @@ export default function Home() {
   const [isOn, setOn] = useState(false);
 
 
-  const updateInventory = async () => {
-    const pantryList = []
+  const updateInventory = useCallback(async () => {
+    const pantryList = [];
     const snapshot = query(collection(firestore, 'pantry'));
     const docs = await getDocs(snapshot);
+    const tempList = [];
+
     docs.forEach((doc) => {
+      tempPantry.map((item) => {
+        if (item.name === doc.id) {
+          tempList.push({
+            name: doc.id,
+            ...doc.data()
+          });
+        }
+      })
       pantryList.push({
         name: doc.id,
         ...doc.data()
-      }
-      )
-    })
+      });
+    });
+    setPantry(pantryList);
     if (!isOn) {
       setTempPantry(pantryList);
     }
-    setPantry(pantryList);
+    else {
+      setTempPantry(tempList);
+    }
 
 
-  }
+  }, [isOn]);
 
   const searchItem = (required) => {
     const result = []
@@ -129,6 +141,8 @@ export default function Home() {
   useEffect(() => {
     updateInventory();
   }, [updateInventory]);
+
+
 
   return (
     <Box width={"100%"} height={"100%"} bgcolor={"#00072D"}>
@@ -190,10 +204,10 @@ export default function Home() {
 
       <Box display={"flex"} justifyContent={"center"} paddingTop={"20px"} gap={4} flexDirection={"column"} alignItems={"center"}>
         {tempPantry.map((item) => {
-          return <Box key={item.name} width={"50%"} color={"white"} display={"flex"} alignItems={"center"} justifyContent={"space-around"} bgcolor={"#3c435e"} borderRadius={"10px"}>
+          return <Box minHeight={"100px"} key={item.name} width={"50%"} color={"white"} display={"flex"} alignItems={"center"} justifyContent={"space-around"} bgcolor={"#3c435e"} borderRadius={"10px"}>
             <Typography> {item.name.charAt(0).toUpperCase() + item.name.slice(1)}</Typography>
             <Typography>Quantity: {item.quantity}</Typography>
-            <ButtonGroup
+            {!isOn ? (<ButtonGroup
               orientation="vertical"
               aria-label="Vertical button group"
               variant="text"
@@ -204,7 +218,9 @@ export default function Home() {
               <Button data-item={item.name} onClick={() => {
                 removeItem(item.name);
               }}>-</Button>
-            </ButtonGroup>
+            </ButtonGroup>) : null}
+
+
           </Box>
         })}
       </Box>
