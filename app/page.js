@@ -1,95 +1,213 @@
+'use client'
 import Image from "next/image";
-import styles from "./page.module.css";
+import { useState, useEffect } from "react";
+import { firestore } from "@/firebase";
+import { Box, Typography, DataGrid, TextField, Button, styled, Stack, Item, ButtonGroup, Alert, AlertTitle } from "@mui/material";
+import { collection, deleteDoc, doc, getDocs, query, setDoc, getDoc } from "firebase/firestore";
+
+const ColorButton = styled(Button)(() => ({
+  color: "white",
+  backgroundColor: "transparent",
+  fontSize: "40px",
+  maxHeight: "55px",
+  '&:hover': {
+    backgroundColor: 'transparent', // Remove the default hover background
+    color: 'white',
+  }
+}));
+
+
+
+const CustomTextField = styled(TextField)({
+  '& .MuiFilledInput-root': {
+    backgroundColor: 'rgba(186, 182, 173, 0.8)',
+    color: '#00072D',
+    '&:hover': {
+      backgroundColor: 'rgba(186, 182, 173, 0.8)', // Same as default to avoid hover effect
+      color: '#00072D', // Same as default to avoid hover effect
+    },
+    '&.Mui-focused': {
+      backgroundColor: 'rgba(186, 182, 173, 0.8)', // Same as hover
+      color: '#00072D', // Same as hover
+    },
+  },
+  '& .MuiInputLabel-root': {
+    color: '#00072D',
+    '&.Mui-focused': {
+      color: '#00072D', // Keep label color the same when focused
+    },
+  },
+  '& .MuiFilledInput-underline:before': {
+    borderBottomColor: 'rgba(0, 7, 45, 0.42)',
+  },
+  '& .MuiFilledInput-underline:hover:before': {
+    borderBottomColor: '#00072D',
+    borderColor: 'white',
+  },
+  '& .MuiFilledInput-underline:after': {
+    borderBottomColor: 'white',
+    borderColor: 'white',
+  },
+});
+
 
 export default function Home() {
+  const [pantry, setPantry] = useState([]);
+  const [itemName, setItemName] = useState("");
+  const [itemQuantity, setQuantity] = useState(0);
+  const [tempPantry, setTempPantry] = useState([]);
+  const [isOn, setOn] = useState(false);
+
+
+  const updateInventory = async () => {
+    const pantryList = []
+    const snapshot = query(collection(firestore, 'pantry'));
+    const docs = await getDocs(snapshot);
+    docs.forEach((doc) => {
+      pantryList.push({
+        name: doc.id,
+        ...doc.data()
+      }
+      )
+    })
+    if (!isOn) {
+      setTempPantry(pantryList);
+    }
+    setPantry(pantryList);
+
+
+  }
+
+  const searchItem = (required) => {
+    const result = []
+    if (required === '') {
+      setTempPantry(pantry);
+      setOn(false);
+    }
+    else {
+      pantry.map((item) => {
+        if (item.name.toLowerCase().includes(required.toLowerCase())) {
+          result.push(item);
+        }
+      })
+      setTempPantry(result);
+      setOn(true)
+    }
+  }
+
+  const removeItem = async (item) => {
+    const docRef = doc(collection(firestore, 'pantry'), item)
+    const docSnap = await getDoc(docRef)
+    if (docSnap.exists()) {
+      const { quantity } = docSnap.data()
+      if (quantity === 1) {
+        await deleteDoc(docRef)
+      } else {
+        await setDoc(docRef, { quantity: quantity - 1 })
+      }
+    }
+    await updateInventory()
+  }
+
+  const addItem = async (item, userQuantity = 0) => {
+    const docRef = doc(collection(firestore, 'pantry'), item.toLowerCase())
+    const docSnap = await getDoc(docRef);
+    if (userQuantity === 0) {
+      userQuantity = userQuantity + 1
+    }
+    if (docSnap.exists()) {
+      const { quantity } = docSnap.data()
+      await setDoc(docRef, { quantity: quantity + userQuantity })
+    } else {
+      await setDoc(docRef, { quantity: userQuantity })
+    }
+    await updateInventory()
+  }
+
+
+
+  useEffect(() => { updateInventory() }, [])
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.js</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+    <Box width={"100%"} height={"100%"} bgcolor={"#00072D"}>
+      <Box width='100vw' height='15vh' bgcolor='#0A2472' color={"white"} display={"flex"} justifyContent={"center"} alignItems={"center"}>
+        <Typography variant="h2" >Pantry Tracker</Typography>
+      </Box>
 
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+      <Box width='100vw' height='15vh' bgcolor='#051650' color={"white"} display={"flex"} alignItems={"center"} justifyContent={"space-between"} padding={"10px"}>
+        <Box display={"flex"} gap={2}>
+          <CustomTextField
+            key="textfield"
+            onChange={(e) => {
+              setItemName(e.target.value);
+            }}
+            id="filled-search"
+            label="Item Name"
+            type="search"
+            variant="filled"
+            value={itemName}
 
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
+          />
+          <CustomTextField
+            id="filled-number"
+            label="Quantity"
+            type="number"
+            value={itemQuantity}
+            onChange={(e) => {
+              const numericValue = parseInt(e.target.value, 10); // Convert the string to a number
+              setQuantity(numericValue);
+            }}
+            InputLabelProps={{
+              shrink: true,
+            }}
+            variant="filled"
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
+          />
+          <ColorButton onClick={() => {
+            if (itemName.length > 0) {
+              addItem(itemName, itemQuantity);
+              setQuantity(0);
+              setItemName("");
+            }
+          }
+          }>+</ColorButton>
+        </Box>
+        <Box>
+          <CustomTextField
+            id="filled-search"
+            label="Search Item"
+            type="search"
+            variant="filled"
+            onChange={(e) => {
+              const value = e.target.value;
+              searchItem(value);
+            }}
+          />
+        </Box>
+      </Box>
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
+      <Box display={"flex"} justifyContent={"center"} paddingTop={"20px"} gap={4} flexDirection={"column"} alignItems={"center"}>
+        {tempPantry.map((item) => {
+          return <Box width={"50%"} color={"white"} display={"flex"} alignItems={"center"} justifyContent={"space-around"} bgcolor={"#3c435e"} borderRadius={"10px"}>
+            <Typography> {item.name.charAt(0).toUpperCase() + item.name.slice(1)}</Typography>
+            <Typography>Quantity: {item.quantity}</Typography>
+            <ButtonGroup
+              orientation="vertical"
+              aria-label="Vertical button group"
+              variant="text"
+            >
+              <Button data-item={item.name} onClick={() => {
+                addItem(item.name);
+              }}>+</Button>
+              <Button data-item={item.name} onClick={() => {
+                removeItem(item.name);
+              }}>-</Button>
+            </ButtonGroup>
+          </Box>
+        })}
+      </Box>
 
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </Box>
+
   );
 }
