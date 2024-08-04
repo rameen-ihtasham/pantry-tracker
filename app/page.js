@@ -143,7 +143,6 @@ export default function Home() {
   }, [updateInventory]);
 
 
-
   return (
     <Box width={"100%"} height={"100%"} bgcolor={"#00072D"}>
       <Box width='100vw' height='15vh' bgcolor='#0A2472' color={"white"} display={"flex"} justifyContent={"center"} alignItems={"center"}>
@@ -219,8 +218,6 @@ export default function Home() {
                 removeItem(item.name);
               }}>-</Button>
             </ButtonGroup>) : null}
-
-
           </Box>
         })}
       </Box>
