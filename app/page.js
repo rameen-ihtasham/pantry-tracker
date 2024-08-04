@@ -126,7 +126,9 @@ export default function Home() {
 
 
 
-  useEffect(() => { updateInventory() }, [])
+  useEffect(() => {
+    updateInventory();
+  }, [updateInventory]);
 
   return (
     <Box width={"100%"} height={"100%"} bgcolor={"#00072D"}>
@@ -188,7 +190,7 @@ export default function Home() {
 
       <Box display={"flex"} justifyContent={"center"} paddingTop={"20px"} gap={4} flexDirection={"column"} alignItems={"center"}>
         {tempPantry.map((item) => {
-          return <Box width={"50%"} color={"white"} display={"flex"} alignItems={"center"} justifyContent={"space-around"} bgcolor={"#3c435e"} borderRadius={"10px"}>
+          return <Box key={item.name} width={"50%"} color={"white"} display={"flex"} alignItems={"center"} justifyContent={"space-around"} bgcolor={"#3c435e"} borderRadius={"10px"}>
             <Typography> {item.name.charAt(0).toUpperCase() + item.name.slice(1)}</Typography>
             <Typography>Quantity: {item.quantity}</Typography>
             <ButtonGroup
